@@ -36,11 +36,13 @@ export default function InfoPanel() {
   const showInfoPanel = useStore((s) => s.showInfoPanel);
   const hoveredNodeIndex = useStore((s) => s.hoveredNodeIndex);
   const positions = useStore((s) => s.positions);
-  const stressComponents = useStore((s) => s.stressComponents);
+  const stressSAB = useStore((s) => s.stressSAB);
+  const stressVersion = useStore((s) => s.stressVersion);
   const stats = useStore((s) => s.stats);
 
   if (!showInfoPanel) return null;
 
+  const stressComponents = stressSAB ? new Float32Array(stressSAB) : null;
   const hasNode = hoveredNodeIndex !== null && positions !== null && stressComponents !== null;
   const nodeIdx = hoveredNodeIndex ?? 0;
 
@@ -153,10 +155,10 @@ export default function InfoPanel() {
           <div className="text-xs text-white/40 uppercase tracking-wider mb-2" style={{ fontFamily: "'Orbitron', sans-serif" }}>
             Mesh Stats
           </div>
-          <StatRow label="Total Nodes" value={stats.totalNodes.toLocaleString()} />
-          <StatRow label="Total Elements" value={stats.totalElements.toLocaleString()} />
-          <StatRow label="Surface Faces" value={stats.surfaceFaces.toLocaleString()} />
-          <StatRow label="Surface Vertices" value={stats.surfaceVertices.toLocaleString()} />
+          <StatRow label="Total Nodes" value={(stats.totalNodes ?? 0).toLocaleString()} />
+          <StatRow label="Total Elements" value={(stats.totalElements ?? 0).toLocaleString()} />
+          <StatRow label="Surface Faces" value={(stats.surfaceFaces ?? 0).toLocaleString()} />
+          <StatRow label="Surface Vertices" value={(stats.surfaceVertices ?? 0).toLocaleString()} />
         </div>
       )}
     </div>

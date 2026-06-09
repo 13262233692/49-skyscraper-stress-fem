@@ -16,25 +16,65 @@ export default function Home() {
   const isLoading = useStore((s) => s.isLoading);
   const isPlaying = useStore((s) => s.isPlaying);
   const playbackSpeed = useStore((s) => s.playbackSpeed);
-  const currentTimeStep = useStore((s) => s.currentTimeStep);
   const totalTimeSteps = useStore((s) => s.totalTimeSteps);
   const setCurrentTimeStep = useStore((s) => s.setCurrentTimeStep);
   const setFps = useStore((s) => s.setFps);
+  const setWorkerBusy = useStore((s) => s.setWorkerBusy);
+  const bumpStressVersion = useStore((s) => s.bumpStressVersion);
+  const updateStats = useStore((s) => s.updateStats);
+
+  const workerRef = useRef<Worker | null>(null);
   const fpsRef = useRef(0);
   const frameCountRef = useRef(0);
   const lastTimeRef = useRef(performance.now());
+  const pendingWindRef = useRef<{ speed: number; dir: number } | null>(null);
+  const windDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const sendWindUpdate = useCallback((speed: number, dir: number) => {
+    if (!workerRef.current) return;
+
+    const isBusy = useStore.getState().workerBusy;
+    if (isBusy) {
+      pendingWindRef.current = { speed, dir };
+      return;
+    }
+
+    setWorkerBusy(true);
+    workerRef.current.postMessage({
+      type: 'updateWind',
+      windSpeed: speed,
+      windDirection: dir,
+    });
+  }, [setWorkerBusy]);
+
+  const flushPendingWind = useCallback(() => {
+    if (pendingWindRef.current && workerRef.current) {
+      const { speed, dir } = pendingWindRef.current;
+      pendingWindRef.current = null;
+      setWorkerBusy(true);
+      workerRef.current.postMessage({
+        type: 'updateWind',
+        windSpeed: speed,
+        windDirection: dir,
+      });
+    }
+  }, [setWorkerBusy]);
 
   const loadDemoData = useCallback(async () => {
     setLoading(true, 0, 'generating');
-
     await new Promise((r) => setTimeout(r, 100));
 
     const buffer = generateDemoFEMData(6, 6, 40);
+
+    if (workerRef.current) {
+      workerRef.current.terminate();
+    }
 
     const worker = new Worker(
       new URL('../workers/femParser.worker.ts', import.meta.url),
       { type: 'module' }
     );
+    workerRef.current = worker;
 
     worker.onmessage = (e: MessageEvent) => {
       const msg = e.data;
@@ -47,32 +87,73 @@ export default function Home() {
         setFEMData({
           positions: msg.positions,
           indices: msg.indices,
+          stressSAB: msg.stressSAB,
+          flagSAB: msg.flagSAB,
           stressComponents: msg.stressComponents,
+          surfaceVertexCount: msg.surfaceVertexCount,
+          useSAB: msg.useSAB,
           header: msg.header,
           stats: msg.stats,
         });
         setLoading(false, 1, 'complete');
-        worker.terminate();
+        bumpStressVersion();
+      }
+
+      if (msg.type === 'stressUpdated') {
+        if (msg.stressComponents) {
+          setFEMData({ stressComponents: msg.stressComponents });
+        }
+        updateStats(msg.stats);
+        bumpStressVersion();
+        setWorkerBusy(false);
+        flushPendingWind();
       }
 
       if (msg.type === 'error') {
-        console.error('FEM parse error:', msg.message);
         setLoading(false, 0, 'error');
-        worker.terminate();
+        setWorkerBusy(false);
       }
     };
 
     worker.onerror = () => {
       setLoading(false, 0, 'error');
-      worker.terminate();
+      setWorkerBusy(false);
     };
 
-    worker.postMessage(buffer, [buffer]);
-  }, [setFEMData, setLoading]);
+    worker.postMessage({ type: 'parse', buffer }, [buffer]);
+  }, [setFEMData, setLoading, bumpStressVersion, updateStats, setWorkerBusy, flushPendingWind]);
 
   useEffect(() => {
     loadDemoData();
+
+    return () => {
+      if (workerRef.current) {
+        workerRef.current.terminate();
+        workerRef.current = null;
+      }
+    };
   }, [loadDemoData]);
+
+  const windSpeed = useStore((s) => s.windSpeed);
+  const windDirection = useStore((s) => s.windDirection);
+
+  useEffect(() => {
+    if (!positions) return;
+
+    if (windDebounceRef.current) {
+      clearTimeout(windDebounceRef.current);
+    }
+
+    windDebounceRef.current = setTimeout(() => {
+      sendWindUpdate(windSpeed, windDirection);
+    }, 80);
+
+    return () => {
+      if (windDebounceRef.current) {
+        clearTimeout(windDebounceRef.current);
+      }
+    };
+  }, [windSpeed, windDirection, positions, sendWindUpdate]);
 
   useEffect(() => {
     if (!isPlaying) return;

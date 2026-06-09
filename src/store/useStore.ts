@@ -3,7 +3,11 @@ import { create } from 'zustand';
 interface FEMDataState {
   positions: Float32Array | null;
   indices: Uint32Array | null;
+  stressSAB: SharedArrayBuffer | null;
+  flagSAB: SharedArrayBuffer | null;
   stressComponents: Float32Array | null;
+  surfaceVertexCount: number;
+  useSAB: boolean;
   header: { magic: string; version: number; nodeCount: number; elemCount: number; stressCount: number } | null;
   stats: {
     totalNodes: number;
@@ -42,6 +46,8 @@ interface UIState {
   showControlPanel: boolean;
   showInfoPanel: boolean;
   fps: number;
+  workerBusy: boolean;
+  stressVersion: number;
 }
 
 interface AppState extends FEMDataState, RenderState, WindState, AnimationState, UIState {
@@ -60,13 +66,20 @@ interface AppState extends FEMDataState, RenderState, WindState, AnimationState,
   toggleControlPanel: () => void;
   toggleInfoPanel: () => void;
   setFps: (fps: number) => void;
+  setWorkerBusy: (busy: boolean) => void;
+  bumpStressVersion: () => void;
+  updateStats: (stats: { minStress: number; maxStress: number }) => void;
   reset: () => void;
 }
 
 const initialState = {
   positions: null as Float32Array | null,
   indices: null as Uint32Array | null,
+  stressSAB: null as SharedArrayBuffer | null,
+  flagSAB: null as SharedArrayBuffer | null,
   stressComponents: null as Float32Array | null,
+  surfaceVertexCount: 0,
+  useSAB: false,
   header: null as FEMDataState['header'],
   stats: null as FEMDataState['stats'],
   renderMode: 'solid' as RenderState['renderMode'],
@@ -86,6 +99,8 @@ const initialState = {
   showControlPanel: true,
   showInfoPanel: true,
   fps: 0,
+  workerBusy: false,
+  stressVersion: 0,
 };
 
 export const useStore = create<AppState>()((set) => ({
@@ -125,6 +140,14 @@ export const useStore = create<AppState>()((set) => ({
   toggleInfoPanel: () => set((state) => ({ showInfoPanel: !state.showInfoPanel })),
 
   setFps: (fps) => set({ fps }),
+
+  setWorkerBusy: (busy) => set({ workerBusy: busy }),
+
+  bumpStressVersion: () => set((state) => ({ stressVersion: state.stressVersion + 1 })),
+
+  updateStats: (stats) => set((state) => ({
+    stats: state.stats ? { ...state.stats, ...stats } : stats as any,
+  })),
 
   reset: () => set({ ...initialState }),
 }));

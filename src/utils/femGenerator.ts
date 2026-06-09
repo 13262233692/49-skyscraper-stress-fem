@@ -25,7 +25,7 @@ export function generateDemoFEMData(nx: number = 6, ny: number = 6, nz: number =
 
   let offset = 0;
 
-  const magic = "ANSYS_FEM";
+  const magic = "ANSYS_FE";
   for (let i = 0; i < 8; i++) {
     view.setUint8(offset++, i < magic.length ? magic.charCodeAt(i) : 0);
   }

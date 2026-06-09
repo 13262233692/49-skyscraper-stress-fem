@@ -1,18 +1,14 @@
 import { Wind, AlertTriangle } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 
-function computeMaxVonMises(stressComponents: Float32Array | null, stats: { minStress: number; maxStress: number } | null) {
-  if (!stressComponents || !stats) return 0;
-  return stats.maxStress;
-}
-
 export default function StatusBar() {
   const windSpeed = useStore((s) => s.windSpeed);
   const stats = useStore((s) => s.stats);
-  const stressComponents = useStore((s) => s.stressComponents);
+  const stressSAB = useStore((s) => s.stressSAB);
+  const stressVersion = useStore((s) => s.stressVersion);
   const fps = useStore((s) => s.fps);
 
-  const maxVonMises = computeMaxVonMises(stressComponents, stats);
+  const maxVonMises = stats?.maxStress ?? 0;
   const yieldThreshold = stats ? stats.maxStress * 0.85 : 0;
   const isYieldWarning = stats ? maxVonMises > yieldThreshold && maxVonMises > 0 : false;
 

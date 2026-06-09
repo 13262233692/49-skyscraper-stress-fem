@@ -52,7 +52,11 @@ export default function FileUploader() {
           setFEMData({
             positions: msg.positions,
             indices: msg.indices,
+            stressSAB: msg.stressSAB,
+            flagSAB: msg.flagSAB,
             stressComponents: msg.stressComponents,
+            surfaceVertexCount: msg.surfaceVertexCount,
+            useSAB: msg.useSAB,
             header: msg.header,
             stats: msg.stats,
           });
@@ -76,7 +80,7 @@ export default function FileUploader() {
         worker.terminate();
       };
 
-      worker.postMessage(buffer, [buffer]);
+      worker.postMessage({ type: 'parse', buffer }, [buffer]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to read file');
       setLoading(false, 0, 'error');
