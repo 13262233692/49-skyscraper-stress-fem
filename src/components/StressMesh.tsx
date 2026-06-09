@@ -5,6 +5,9 @@ import { useStore } from '@/store/useStore';
 import { stressVertexShader, stressFragmentShader } from '@/shaders';
 
 const SAB_FLAG_READY = 2;
+const BUILDING_HEIGHT = 300;
+const BASE_SWAY = 0.3;
+const RESONANCE_AMP_SCALE = 50;
 
 export function StressMesh() {
   const positions = useStore(s => s.positions);
@@ -19,11 +22,14 @@ export function StressMesh() {
   const stressRange = useStore(s => s.stressRange);
   const autoStressRange = useStore(s => s.autoStressRange);
   const stats = useStore(s => s.stats);
+  const turbulenceFreq = useStore(s => s.turbulenceFreq);
+  const swayAmplitude = useStore(s => s.swayAmplitude);
 
   const materialRef = useRef<THREE.ShaderMaterial>(null);
   const aStressAttrRef = useRef<THREE.BufferAttribute | null>(null);
   const aShearAttrRef = useRef<THREE.BufferAttribute | null>(null);
   const maxAbsStressRef = useRef(1);
+  const elapsedTimeRef = useRef(0);
   const useSAB = !!stressSAB;
 
   const getStressView = useMemo(() => {
@@ -78,7 +84,22 @@ export function StressMesh() {
     return geo;
   }, [positions, indices, stressSAB, stressComponents, surfaceVertexCount]);
 
-  useFrame(() => {
+  const uniforms = useMemo(() => ({
+    uMinStress: { value: 0.0 },
+    uMaxStress: { value: 1.0 },
+    uColorMode: { value: 0 },
+    uTime: { value: 0.0 },
+    uSwayAmplitude: { value: 0.0 },
+    uTurbFreq: { value: 0.10 },
+    uBuildingHeight: { value: BUILDING_HEIGHT },
+  }), []);
+
+  useFrame((_, delta) => {
+    elapsedTimeRef.current += delta;
+    uniforms.uTime.value = elapsedTimeRef.current;
+    uniforms.uSwayAmplitude.value = swayAmplitude;
+    uniforms.uTurbFreq.value = turbulenceFreq;
+
     if (!geometry || !aStressAttrRef.current || !aShearAttrRef.current) return;
 
     const stressView = getStressView();
@@ -116,12 +137,6 @@ export function StressMesh() {
     stressAttr.needsUpdate = true;
     shearAttr.needsUpdate = true;
   });
-
-  const uniforms = useMemo(() => ({
-    uMinStress: { value: 0.0 },
-    uMaxStress: { value: 1.0 },
-    uColorMode: { value: 0 },
-  }), []);
 
   const effectiveRange = useMemo(() => {
     const maxAbs = maxAbsStressRef.current || 1;

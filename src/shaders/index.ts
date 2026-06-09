@@ -2,9 +2,23 @@ export const stressVertexShader = `
 attribute vec3 aStress;
 attribute vec3 aShear;
 
+uniform float uTime;
+uniform float uSwayAmplitude;
+uniform float uTurbFreq;
+uniform float uBuildingHeight;
+
 varying float vStress;
 varying vec3 vNormal;
 varying vec3 vPosition;
+
+float firstBendingMode(float h) {
+    float xi = clamp(h / uBuildingHeight, 0.0, 1.0);
+    float bL = 1.8751;
+    float sigma = (cosh(bL) - cos(bL)) / (sinh(bL) - sin(bL));
+    float phi = cosh(bL * xi) - cos(bL * xi) - sigma * (sinh(bL * xi) - sin(bL * xi));
+    float phiTop = cosh(bL) - cos(bL) - sigma * (sinh(bL) - sin(bL));
+    return phi / phiTop;
+}
 
 void main() {
     float sigmaXX = aStress.x;
@@ -25,10 +39,19 @@ void main() {
     );
 
     vStress = clamp(vonMises, 0.0, 1.0);
-    vNormal = normalize(normalMatrix * normal);
-    vPosition = (modelMatrix * vec4(position, 1.0)).xyz;
 
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    vec3 displaced = position;
+
+    if (uSwayAmplitude > 0.0) {
+        float modeShape = firstBendingMode(position.z);
+        float harmonic = sin(2.0 * 3.14159265 * uTurbFreq * uTime);
+        displaced.x += modeShape * uSwayAmplitude * harmonic;
+    }
+
+    vNormal = normalize(normalMatrix * normal);
+    vPosition = (modelMatrix * vec4(displaced, 1.0)).xyz;
+
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(displaced, 1.0);
 }
 `;
 

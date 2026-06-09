@@ -136,6 +136,19 @@ export default function Home() {
 
   const windSpeed = useStore((s) => s.windSpeed);
   const windDirection = useStore((s) => s.windDirection);
+  const turbulenceFreq = useStore((s) => s.turbulenceFreq);
+  const setResonanceState = useStore((s) => s.setResonanceState);
+
+  useEffect(() => {
+    const { modalFreq, dampingRatio } = useStore.getState();
+    const r = turbulenceFreq / modalFreq;
+    const denom = Math.sqrt((1 - r * r) ** 2 + (2 * dampingRatio * r) ** 2);
+    const factor = 1 / Math.max(denom, 0.001);
+    const isResonance = r > 0.7 && r < 1.3;
+    const baseAmp = 0.3;
+    const amplitude = baseAmp * factor * (isResonance ? 50 : Math.min(factor, 5));
+    setResonanceState(factor, Math.min(amplitude, 30), isResonance);
+  }, [turbulenceFreq, setResonanceState]);
 
   useEffect(() => {
     if (!positions) return;

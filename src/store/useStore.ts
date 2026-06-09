@@ -29,6 +29,12 @@ interface RenderState {
 interface WindState {
   windSpeed: number;
   windDirection: number;
+  turbulenceFreq: number;
+  modalFreq: number;
+  dampingRatio: number;
+  resonanceFactor: number;
+  swayAmplitude: number;
+  isResonance: boolean;
 }
 
 interface AnimationState {
@@ -58,6 +64,8 @@ interface AppState extends FEMDataState, RenderState, WindState, AnimationState,
   setAutoStressRange: (auto: boolean) => void;
   setWindSpeed: (speed: number) => void;
   setWindDirection: (dir: number) => void;
+  setTurbulenceFreq: (freq: number) => void;
+  setResonanceState: (factor: number, amplitude: number, isResonance: boolean) => void;
   setCurrentTimeStep: (step: number) => void;
   setPlaying: (playing: boolean) => void;
   setPlaybackSpeed: (speed: number) => void;
@@ -88,6 +96,12 @@ const initialState = {
   autoStressRange: true,
   windSpeed: 35,
   windDirection: 0,
+  turbulenceFreq: 0.10,
+  modalFreq: 0.15,
+  dampingRatio: 0.02,
+  resonanceFactor: 1,
+  swayAmplitude: 0,
+  isResonance: false,
   currentTimeStep: 0,
   totalTimeSteps: 10,
   isPlaying: false,
@@ -119,6 +133,11 @@ export const useStore = create<AppState>()((set) => ({
   setWindSpeed: (speed) => set({ windSpeed: speed }),
 
   setWindDirection: (dir) => set({ windDirection: dir }),
+
+  setTurbulenceFreq: (freq) => set({ turbulenceFreq: freq }),
+
+  setResonanceState: (factor, amplitude, isResonance) =>
+    set({ resonanceFactor: factor, swayAmplitude: amplitude, isResonance }),
 
   setCurrentTimeStep: (step) => set({ currentTimeStep: step }),
 

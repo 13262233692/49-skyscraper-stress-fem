@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Play, Pause, Wind, Settings2, BarChart3, Clapperboard } from 'lucide-react';
+import { ChevronDown, ChevronRight, Play, Pause, Wind, Settings2, BarChart3, Clapperboard, Activity } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 
 function Section({ title, icon: Icon, defaultOpen, children }: {
@@ -98,6 +98,10 @@ export default function ControlPanel() {
   const showControlPanel = useStore((s) => s.showControlPanel);
   const windSpeed = useStore((s) => s.windSpeed);
   const windDirection = useStore((s) => s.windDirection);
+  const turbulenceFreq = useStore((s) => s.turbulenceFreq);
+  const modalFreq = useStore((s) => s.modalFreq);
+  const resonanceFactor = useStore((s) => s.resonanceFactor);
+  const isResonance = useStore((s) => s.isResonance);
   const renderMode = useStore((s) => s.renderMode);
   const colorMode = useStore((s) => s.colorMode);
   const autoStressRange = useStore((s) => s.autoStressRange);
@@ -110,6 +114,7 @@ export default function ControlPanel() {
 
   const setWindSpeed = useStore((s) => s.setWindSpeed);
   const setWindDirection = useStore((s) => s.setWindDirection);
+  const setTurbulenceFreq = useStore((s) => s.setTurbulenceFreq);
   const setRenderMode = useStore((s) => s.setRenderMode);
   const setColorMode = useStore((s) => s.setColorMode);
   const setAutoStressRange = useStore((s) => s.setAutoStressRange);
@@ -129,6 +134,33 @@ export default function ControlPanel() {
       <Section title="Wind Parameters" icon={Wind}>
         <SliderRow label="Wind Speed" value={windSpeed} min={0} max={100} step={0.5} unit=" m/s" onChange={setWindSpeed} />
         <SliderRow label="Wind Direction" value={windDirection} min={0} max={360} step={1} unit="°" onChange={setWindDirection} />
+      </Section>
+
+      <Section title="Frequency Analysis" icon={Activity}>
+        <SliderRow label="Turbulence Freq" value={turbulenceFreq} min={0.01} max={0.50} step={0.005} unit=" Hz" onChange={setTurbulenceFreq} />
+        <div className="space-y-1.5">
+          <div className="flex justify-between text-xs text-white/50">
+            <span>1st Modal Freq</span>
+            <span className="font-mono" style={{ color: '#00D4FF' }}>{modalFreq.toFixed(3)} Hz</span>
+          </div>
+          <div className="flex justify-between text-xs text-white/50">
+            <span>Resonance Factor</span>
+            <span className="font-mono" style={{ color: isResonance ? '#FF2D55' : '#00D4FF' }}>
+              {resonanceFactor.toFixed(1)}x
+            </span>
+          </div>
+          <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden mt-1">
+            <div
+              className="h-full rounded-full transition-all duration-300"
+              style={{
+                width: `${Math.min(100, (resonanceFactor / 25) * 100)}%`,
+                backgroundColor: isResonance
+                  ? '#FF2D55'
+                  : resonanceFactor > 5 ? '#FF9500' : '#00D4FF',
+              }}
+            />
+          </div>
+        </div>
       </Section>
 
       <Section title="Render Settings" icon={Settings2}>

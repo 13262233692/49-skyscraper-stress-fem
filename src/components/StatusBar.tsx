@@ -1,12 +1,15 @@
-import { Wind, AlertTriangle } from 'lucide-react';
+import { Wind, AlertTriangle, Radio } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 
 export default function StatusBar() {
   const windSpeed = useStore((s) => s.windSpeed);
   const stats = useStore((s) => s.stats);
-  const stressSAB = useStore((s) => s.stressSAB);
   const stressVersion = useStore((s) => s.stressVersion);
   const fps = useStore((s) => s.fps);
+  const isResonance = useStore((s) => s.isResonance);
+  const resonanceFactor = useStore((s) => s.resonanceFactor);
+  const turbulenceFreq = useStore((s) => s.turbulenceFreq);
+  const modalFreq = useStore((s) => s.modalFreq);
 
   const maxVonMises = stats?.maxStress ?? 0;
   const yieldThreshold = stats ? stats.maxStress * 0.85 : 0;
@@ -35,7 +38,16 @@ export default function StatusBar() {
           </span>
         </div>
 
-        {isYieldWarning && (
+        {isResonance && (
+          <div className="flex items-center gap-1.5 animate-pulse">
+            <Radio className="w-4 h-4" style={{ color: '#FF2D55' }} />
+            <span className="font-semibold text-xs uppercase tracking-wider" style={{ color: '#FF2D55' }}>
+              RESONANCE {resonanceFactor.toFixed(0)}x
+            </span>
+          </div>
+        )}
+
+        {isYieldWarning && !isResonance && (
           <div className="flex items-center gap-1.5 animate-pulse">
             <AlertTriangle className="w-4 h-4" style={{ color: '#FF2D55' }} />
             <span className="font-semibold text-xs uppercase tracking-wider" style={{ color: '#FF2D55' }}>
@@ -45,9 +57,21 @@ export default function StatusBar() {
         )}
       </div>
 
-      <div className="flex items-center gap-2 text-xs text-white/50">
-        <span>FPS</span>
-        <span className="font-mono text-sm" style={{ color: fps >= 30 ? '#00D4FF' : '#FF2D55' }}>{fps}</span>
+      <div className="flex items-center gap-4 text-xs text-white/50">
+        <div className="flex items-center gap-1.5">
+          <span>f_turb:</span>
+          <span className="font-mono" style={{ color: isResonance ? '#FF2D55' : '#00D4FF' }}>
+            {turbulenceFreq.toFixed(3)} Hz
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span>f_modal:</span>
+          <span className="font-mono" style={{ color: '#00D4FF' }}>{modalFreq.toFixed(3)} Hz</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span>FPS</span>
+          <span className="font-mono text-sm" style={{ color: fps >= 30 ? '#00D4FF' : '#FF2D55' }}>{fps}</span>
+        </div>
       </div>
     </div>
   );
